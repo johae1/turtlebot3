@@ -1,6 +1,7 @@
 /**:
   turtlebot3_node:
     ros__parameters:
+      publish_period_ms: 5
 
       enable_stamped_cmd_vel: false
 
@@ -14,6 +15,7 @@
         radius: 0.033
 
       motors:
+        operating_mode: 1
         profile_acceleration_constant: 214.577
 
         # [rev/min2]
