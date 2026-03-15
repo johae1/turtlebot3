@@ -105,6 +105,12 @@ typedef struct
 
   ControlItem profile_acceleration_left = {174, RAM, 4, READ_WRITE};
   ControlItem profile_acceleration_right = {178, RAM, 4, READ_WRITE};
+
+  ControlItem operating_mode          = {182, RAM, 1, READ_WRITE};
+  ControlItem present_pwm_left        = {183, RAM, 2, READ_WRITE}; //not used
+  ControlItem present_pwm_right       = {185, RAM, 2, READ_WRITE}; //not used
+  ControlItem cmd_pwm_left            = {187, RAM, 2, READ_WRITE};
+  ControlItem cmd_pwm_right           = {189, RAM, 2, READ_WRITE};
 } ControlTable;
 
 const ControlTable extern_control_table;
