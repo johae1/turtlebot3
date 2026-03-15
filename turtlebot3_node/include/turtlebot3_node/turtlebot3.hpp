@@ -35,6 +35,7 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <turtlebot3_msgs/msg/sensor_state.hpp>
+#include <turtlebot3_msgs/msg/wheel_pwm.hpp>
 
 #include "turtlebot3_node/control_table.hpp"
 #include "turtlebot3_node/devices/devices.hpp"
@@ -68,6 +69,7 @@ public:
   {
     float profile_acceleration_constant;
     float profile_acceleration;
+    int operating_mode;
   } Motors;
 
   explicit TurtleBot3(const std::string & usb_port);
@@ -91,6 +93,7 @@ private:
   void heartbeat_timer(const std::chrono::milliseconds timeout);
 
   void cmd_vel_callback();
+  void cmd_pwm_callback();
   void parameter_event_callback();
 
   Wheels wheels_;
@@ -109,6 +112,7 @@ private:
   rclcpp::TimerBase::SharedPtr heartbeat_timer_;
 
   std::unique_ptr<TwistSubscriber> cmd_vel_sub_;
+  rclcpp::Subscription<turtlebot3_msgs::msg::WheelPwm>::SharedPtr cmd_pwm_sub_;
 
   rclcpp::AsyncParametersClient::SharedPtr priv_parameters_client_;
   rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr parameter_event_sub_;

@@ -114,8 +114,31 @@ void TurtleBot3::add_motors()
 {
   RCLCPP_INFO(this->get_logger(), "Add Motors");
 
+  this->declare_parameter<int>("motors.operating_mode");
   this->declare_parameter<float>("motors.profile_acceleration_constant");
   this->declare_parameter<float>("motors.profile_acceleration");
+
+  this->get_parameter_or<int>(
+    "motors.operating_mode",
+    motors_.operating_mode,
+    1);
+
+  motors_.operating_mode = std::clamp(motors_.operating_mode, 0, 255);
+
+  {
+    std::string sdk_msg;
+    uint8_t operating_mode = static_cast<uint8_t>(motors_.operating_mode);
+    dxl_sdk_wrapper_->set_data_to_device(
+      extern_control_table.motor_mode.addr,
+      extern_control_table.motor_mode.length,
+      &operating_mode,
+      &sdk_msg);
+    RCLCPP_INFO(
+      this->get_logger(),
+      "Set initial operating_mode : %d sdk_msg : %s",
+      motors_.operating_mode,
+      sdk_msg.c_str());
+  }
 
   this->get_parameter_or<float>(
     "motors.profile_acceleration_constant",
@@ -222,11 +245,15 @@ void TurtleBot3::run()
 {
   RCLCPP_INFO(this->get_logger(), "Run!");
 
-  publish_timer(std::chrono::milliseconds(50));
+  int publish_period_ms = this->declare_parameter<int>("publish_period_ms", 5);
+  this->get_parameter_or<int>("publish_period_ms", publish_period_ms, 5);
+
+  publish_timer(std::chrono::milliseconds(publish_period_ms));
   heartbeat_timer(std::chrono::milliseconds(100));
 
   parameter_event_callback();
   cmd_vel_callback();
+  cmd_pwm_callback();
 }
 
 void TurtleBot3::publish_timer(const std::chrono::milliseconds timeout)
@@ -322,6 +349,28 @@ void TurtleBot3::parameter_event_callback()
             motors_.profile_acceleration,
             sdk_msg.c_str());
         }
+
+        if (changed_parameter.name == "motors.operating_mode") {
+          std::string sdk_msg;
+
+          motors_.operating_mode =
+            rclcpp::Parameter::from_parameter_msg(changed_parameter).as_int();
+          motors_.operating_mode = std::clamp(motors_.operating_mode, 0, 255);
+
+          uint8_t operating_mode = static_cast<uint8_t>(motors_.operating_mode);
+
+          dxl_sdk_wrapper_->set_data_to_device(
+            extern_control_table.motor_mode.addr,
+            extern_control_table.motor_mode.length,
+            &operating_mode,
+            &sdk_msg);
+
+          RCLCPP_INFO(
+            this->get_logger(),
+            "changed parameter value : %d [operating_mode] sdk_msg : %s",
+            motors_.operating_mode,
+            sdk_msg.c_str());
+        }
       }
     };
 
@@ -402,5 +451,43 @@ void TurtleBot3::cmd_vel_callback()
           sdk_msg.c_str());
       }
     )
+  );
+}
+
+void TurtleBot3::cmd_pwm_callback()
+{
+  auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
+  cmd_pwm_sub_ = this->create_subscription<turtlebot3_msgs::msg::WheelPwm>(
+    "cmd_pwm",
+    qos,
+    [this](const turtlebot3_node::msg::WheelPwm::SharedPtr msg) -> void
+    {
+      std::string sdk_msg;
+
+      union Data {
+        int16_t word[2];
+        uint8_t byte[2 * 2];
+      } data;
+
+      data.word[0] = std::clamp<int16_t>(msg->left_pwm, -885, 885);
+      data.word[1] = std::clamp<int16_t>(msg->right_pwm, -885, 885);
+
+      uint16_t start_addr = extern_control_table.cmd_pwm_left.addr;
+      uint16_t addr_length =
+      (extern_control_table.cmd_pwm_right.addr -
+      extern_control_table.cmd_pwm_left.addr) +
+      extern_control_table.cmd_pwm_right.length;
+
+      uint8_t * p_data = &data.byte[0];
+
+      dxl_sdk_wrapper_->set_data_to_device(start_addr, addr_length, p_data, &sdk_msg);
+
+      RCLCPP_DEBUG(
+        this->get_logger(),
+        "pwm_left: %d pwm_right: %d msg : %s",
+        msg->left_pwm,
+        msg->right_pwm,
+        sdk_msg.c_str());
+    }
   );
 }
