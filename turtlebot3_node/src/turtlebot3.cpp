@@ -129,8 +129,8 @@ void TurtleBot3::add_motors()
     std::string sdk_msg;
     uint8_t operating_mode = static_cast<uint8_t>(motors_.operating_mode);
     dxl_sdk_wrapper_->set_data_to_device(
-      extern_control_table.motor_mode.addr,
-      extern_control_table.motor_mode.length,
+      extern_control_table.operating_mode.addr,
+      extern_control_table.operating_mode.length,
       &operating_mode,
       &sdk_msg);
     RCLCPP_INFO(
@@ -360,8 +360,8 @@ void TurtleBot3::parameter_event_callback()
           uint8_t operating_mode = static_cast<uint8_t>(motors_.operating_mode);
 
           dxl_sdk_wrapper_->set_data_to_device(
-            extern_control_table.motor_mode.addr,
-            extern_control_table.motor_mode.length,
+            extern_control_table.operating_mode.addr,
+            extern_control_table.operating_mode.length,
             &operating_mode,
             &sdk_msg);
 
@@ -460,7 +460,7 @@ void TurtleBot3::cmd_pwm_callback()
   cmd_pwm_sub_ = this->create_subscription<turtlebot3_msgs::msg::WheelPwm>(
     "cmd_pwm",
     qos,
-    [this](const turtlebot3_node::msg::WheelPwm::SharedPtr msg) -> void
+    [this](const turtlebot3_msgs::msg::WheelPwm::SharedPtr msg) -> void
     {
       std::string sdk_msg;
 
