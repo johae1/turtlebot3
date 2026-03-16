@@ -122,7 +122,7 @@ void TurtleBot3::add_motors()
   this->declare_parameter<bool>("segway.ctrl_enable", false);
   this->declare_parameter<std::vector<double>>(
     "segway.k_ext",
-    std::vector<double>{-2.5604, -5.5234, -0.6686, 0.8714});
+    std::vector<double>{-3.2030, -6.3362, -0.7768, -2.7468});
 
   this->get_parameter_or<int>(
     "motors.operating_mode",
@@ -161,7 +161,7 @@ void TurtleBot3::add_motors()
   this->get_parameter_or<std::vector<double>>(
     "segway.k_ext",
     segway_k_ext_param,
-    std::vector<double>{-2.5604, -5.5234, -0.6686, 0.8714});
+    std::vector<double>{-3.2030, -6.3362, -0.7768, -2.7468});
 
   if (segway_k_ext_param.size() < 4) {
     RCLCPP_WARN(
