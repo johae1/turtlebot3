@@ -1,13 +1,13 @@
-# TurtleBot3 (with onboard segway control)
+# TurtleBot3 with onboard segway control
 <img src="https://raw.githubusercontent.com/ROBOTIS-GIT/emanual/master/assets/images/platform/turtlebot3/logo_turtlebot3.png" width="300">
-
-***Updated firmware with onboard segway-control necessary:*** [custom_opencr_turtlebot3_firmware](https://github.com/johae1/OpenCR)
-
-***Custom message added to turtlebot3_msgs necessary:*** [custom turtlebot3_msgs](https://github.com/johae1/turtlebot3_msgs)
-
 
 - Active Branches: humble, jazzy, main(rolling)
 - Legacy Branches: *-devel, noetic
+
+## Onboard Segway Controller (bundle)
+- *Custom turtlebot3_node and turtlebot3_bringup:* [custom_ros2_package](https://github.com/johae1/turtlebot3)
+- *Custom message added to turtlebot3_msgs:* [custom turtlebot3_msgs](https://github.com/johae1/turtlebot3_msgs)
+- *Custom firmware with onboard segway-control:* [custom_opencr_turtlebot3_firmware](https://github.com/johae1/OpenCR)
 
 ## Open Source Projects Related to TurtleBot3
 - [turtlebot3](https://github.com/ROBOTIS-GIT/turtlebot3)
