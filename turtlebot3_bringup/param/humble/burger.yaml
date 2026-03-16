@@ -5,6 +5,10 @@
 
       enable_stamped_cmd_vel: false
 
+      segway:
+        ctrl_enable: false
+        k_ext: [-2.5604, -5.5234, -0.6686, 0.8714]
+
       opencr:
         id: 200
         baud_rate: 1000000
