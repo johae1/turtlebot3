@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 using robotis::turtlebot3::TurtleBot3;
 using namespace std::chrono_literals;
@@ -114,9 +115,14 @@ void TurtleBot3::add_motors()
 {
   RCLCPP_INFO(this->get_logger(), "Add Motors");
 
-  this->declare_parameter<int>("motors.operating_mode");
+  this->declare_parameter<int>("motors.operating_mode", 1);
   this->declare_parameter<float>("motors.profile_acceleration_constant");
   this->declare_parameter<float>("motors.profile_acceleration");
+
+  this->declare_parameter<bool>("segway.ctrl_enable", false);
+  this->declare_parameter<std::vector<double>>(
+    "segway.k_ext",
+    std::vector<double>{-2.5604, -5.5234, -0.6686, 0.8714});
 
   this->get_parameter_or<int>(
     "motors.operating_mode",
@@ -149,6 +155,68 @@ void TurtleBot3::add_motors()
     "motors.profile_acceleration",
     motors_.profile_acceleration,
     0.0);
+
+  this->get_parameter_or<bool>("segway.ctrl_enable", segway_ctrl_enable_, false);
+  std::vector<double> segway_k_ext_param;
+  this->get_parameter_or<std::vector<double>>(
+    "segway.k_ext",
+    segway_k_ext_param,
+    std::vector<double>{-2.5604, -5.5234, -0.6686, 0.8714});
+
+  if (segway_k_ext_param.size() < 4) {
+    RCLCPP_WARN(
+      this->get_logger(),
+      "Parameter segway.k_ext has %zu values, expected 4. Missing values are set to 0.0.",
+      segway_k_ext_param.size());
+  } else if (segway_k_ext_param.size() > 4) {
+    RCLCPP_WARN(
+      this->get_logger(),
+      "Parameter segway.k_ext has %zu values, expected 4. Extra values are ignored.",
+      segway_k_ext_param.size());
+  }
+
+  for (size_t i = 0; i < 4; ++i) {
+    segway_k_ext_[i] =
+      static_cast<float>(i < segway_k_ext_param.size() ? segway_k_ext_param[i] : 0.0);
+  }
+
+  {
+    std::string sdk_msg;
+    uint8_t segway_ctrl_enable = segway_ctrl_enable_ ? 1 : 0;
+    dxl_sdk_wrapper_->set_data_to_device(
+      extern_control_table.segway_ctrl_enable.addr,
+      extern_control_table.segway_ctrl_enable.length,
+      &segway_ctrl_enable,
+      &sdk_msg);
+
+    union Data {
+      float values[4];
+      uint8_t bytes[4 * 4];
+    } data;
+
+    data.values[0] = segway_k_ext_[0];
+    data.values[1] = segway_k_ext_[1];
+    data.values[2] = segway_k_ext_[2];
+    data.values[3] = segway_k_ext_[3];
+
+    uint16_t start_addr = extern_control_table.segway_k_ext_1.addr;
+    uint16_t addr_length =
+      (extern_control_table.segway_k_ext_4.addr -
+      extern_control_table.segway_k_ext_1.addr) +
+      extern_control_table.segway_k_ext_4.length;
+
+    dxl_sdk_wrapper_->set_data_to_device(start_addr, addr_length, &data.bytes[0], &sdk_msg);
+
+    RCLCPP_INFO(
+      this->get_logger(),
+      "Set initial segway params : ctrl_enable=%d, k_ext=[%f, %f, %f, %f], sdk_msg=%s",
+      segway_ctrl_enable_ ? 1 : 0,
+      segway_k_ext_[0],
+      segway_k_ext_[1],
+      segway_k_ext_[2],
+      segway_k_ext_[3],
+      sdk_msg.c_str());
+  }
 }
 
 void TurtleBot3::add_wheels()
@@ -369,6 +437,82 @@ void TurtleBot3::parameter_event_callback()
             this->get_logger(),
             "changed parameter value : %d [operating_mode] sdk_msg : %s",
             motors_.operating_mode,
+            sdk_msg.c_str());
+        }
+
+        if (changed_parameter.name == "segway.ctrl_enable") {
+          std::string sdk_msg;
+
+          segway_ctrl_enable_ =
+            rclcpp::Parameter::from_parameter_msg(changed_parameter).as_bool();
+
+          uint8_t segway_ctrl_enable = segway_ctrl_enable_ ? 1 : 0;
+
+          dxl_sdk_wrapper_->set_data_to_device(
+            extern_control_table.segway_ctrl_enable.addr,
+            extern_control_table.segway_ctrl_enable.length,
+            &segway_ctrl_enable,
+            &sdk_msg);
+
+          RCLCPP_INFO(
+            this->get_logger(),
+            "changed parameter value : %d [segway.ctrl_enable] sdk_msg : %s",
+            segway_ctrl_enable_ ? 1 : 0,
+            sdk_msg.c_str());
+        }
+
+        if (changed_parameter.name == "segway.k_ext") {
+          std::string sdk_msg;
+
+          auto segway_k_ext_param =
+            rclcpp::Parameter::from_parameter_msg(changed_parameter).as_double_array();
+
+          if (segway_k_ext_param.size() < 4) {
+            RCLCPP_WARN(
+              this->get_logger(),
+              "Parameter segway.k_ext has %zu values, expected 4. Missing values are set to 0.0.",
+              segway_k_ext_param.size());
+          } else if (segway_k_ext_param.size() > 4) {
+            RCLCPP_WARN(
+              this->get_logger(),
+              "Parameter segway.k_ext has %zu values, expected 4. Extra values are ignored.",
+              segway_k_ext_param.size());
+          }
+
+          for (size_t i = 0; i < 4; ++i) {
+            segway_k_ext_[i] =
+              static_cast<float>(i < segway_k_ext_param.size() ? segway_k_ext_param[i] : 0.0);
+          }
+
+          union Data {
+            float values[4];
+            uint8_t bytes[4 * 4];
+          } data;
+
+          data.values[0] = segway_k_ext_[0];
+          data.values[1] = segway_k_ext_[1];
+          data.values[2] = segway_k_ext_[2];
+          data.values[3] = segway_k_ext_[3];
+
+          uint16_t start_addr = extern_control_table.segway_k_ext_1.addr;
+          uint16_t addr_length =
+            (extern_control_table.segway_k_ext_4.addr -
+            extern_control_table.segway_k_ext_1.addr) +
+            extern_control_table.segway_k_ext_4.length;
+
+          dxl_sdk_wrapper_->set_data_to_device(
+            start_addr,
+            addr_length,
+            &data.bytes[0],
+            &sdk_msg);
+
+          RCLCPP_INFO(
+            this->get_logger(),
+            "changed parameter value : [%f, %f, %f, %f] [segway.k_ext] sdk_msg : %s",
+            segway_k_ext_[0],
+            segway_k_ext_[1],
+            segway_k_ext_[2],
+            segway_k_ext_[3],
             sdk_msg.c_str());
         }
       }

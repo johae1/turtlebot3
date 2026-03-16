@@ -98,6 +98,8 @@ private:
 
   Wheels wheels_;
   Motors motors_;
+  bool segway_ctrl_enable_;
+  std::array<float, 4> segway_k_ext_;
 
   std::shared_ptr<DynamixelSDKWrapper> dxl_sdk_wrapper_;
 
