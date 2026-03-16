@@ -1,8 +1,13 @@
 /**:
   turtlebot3_node:
     ros__parameters:
+      publish_period_ms: 5
 
       enable_stamped_cmd_vel: false
+
+      segway:
+        ctrl_enable: false
+        k_ext: [-3.2030, -6.3362, -0.7768, -2.7468]
 
       opencr:
         id: 200
@@ -14,6 +19,7 @@
         radius: 0.033
 
       motors:
+        operating_mode: 1
         profile_acceleration_constant: 214.577
 
         # [rev/min2]
